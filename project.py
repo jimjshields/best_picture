@@ -42,13 +42,33 @@ def get_movie_budget(movie_url):
 # 4. print out each Year-Title-Budget combination
 
 def get_all_movie_budgets():
-	movies = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
-	for movie in movies:
-		movie.append(get_movie_budget(movie[0]))
-	return movies
+	movie_list = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+	for movie in movie_list:
+		movie.append(get_movie_budget(movie[0]).encode('utf8'))
+		convert_budget_to_int(movie[3])
+	return movie_list
 
 # 5. After printing each combination, it should print the average budget at the end
 
+def split_budget_text(budget_string):
+	if budget_string == 'N/A':
+		print budget_string
+	else:
+		groups = re.match(r'(?P<currency>\D*)\s?(?P<digits>[\d,\,]*)\s?(?P<units>\D*)', budget_string)
+		if groups:
+			currency = groups.group('currency')
+			digits = groups.group('digits')
+			units = groups.group('units')
+			return (currency, digits, units)
+			# print 'Cur: {0}, Digits: {1}, Units: {2}'.format(currency, digits, units)
+
+def convert_budget_to_int(split_budget):
+
+def get_average_budget():
+	movie_list = get_all_movie_budgets()
+	return reduce(lambda x: x + int(y[3]), movie_list, 0)
+
+# print get_average_budget()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
