@@ -45,24 +45,34 @@ def get_all_movie_budgets():
 	movie_list = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 	for movie in movie_list:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
-		convert_budget_to_int(movie[3])
+		print convert_budget_to_int(split_budget_text(movie[3]))
 	return movie_list
 
 # 5. After printing each combination, it should print the average budget at the end
 
 def split_budget_text(budget_string):
 	if budget_string == 'N/A':
-		print budget_string
+		return budget_string
 	else:
-		groups = re.match(r'(?P<currency>\D*)\s?(?P<digits>[\d,\,]*)\s?(?P<units>\D*)', budget_string)
+		groups = re.match(r'(?P<currency>\D*)\s?(?P<digits>[\d,\,,\.]*)\s?(?P<units>\D*)', budget_string)
 		if groups:
-			currency = groups.group('currency')
-			digits = groups.group('digits')
-			units = groups.group('units')
+			currency = groups.group('currency').strip()
+			digits = groups.group('digits').replace(',', '').strip()
+			units = groups.group('units').strip()
 			return (currency, digits, units)
 			# print 'Cur: {0}, Digits: {1}, Units: {2}'.format(currency, digits, units)
 
 def convert_budget_to_int(split_budget):
+	if split_budget == 'N/A':
+		return split_budget
+	else:
+		currency, digits, units = split_budget
+		if units == 'million':
+			return float(digits) * 1000000
+		else:
+			return float(digits)
+
+get_all_movie_budgets()
 
 def get_average_budget():
 	movie_list = get_all_movie_budgets()
