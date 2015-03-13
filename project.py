@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import requests
+import requests, re
 from bs4 import BeautifulSoup
 
 """Overall goal:  scrape the budgets of the Academy Award 
@@ -19,8 +19,11 @@ def get_url_text(url):
 def get_titles(url):
 	url_text = get_url_text(url)
 	text_soup = BeautifulSoup(url_text)
-	rows = text_soup('table')
-	print rows
+	tables = text_soup('table')
+	possible_winners = tables[96]('li')
+	winners = [li for li in possible_winners if re.match(r'.+\(.+\)', str(li))]
+	movies = [(li.a['href'], li.a.string, re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)) for li in winners]
+	return movies
 
 get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 
