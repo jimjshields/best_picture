@@ -21,17 +21,31 @@ def get_titles(url):
 	text_soup = BeautifulSoup(url_text)
 	tables = text_soup('table')
 	possible_winners = tables[96]('li')
-	winners = [li for li in possible_winners if re.match(r'.+\(.+\)', str(li))]
-	movies = [(li.a['href'], li.a.string, re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)) for li in winners]
+	winners = (li for li in possible_winners if re.match(r'.+\(.+\)', str(li)))
+	movies = [[li.a['href'], li.a.string, re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)] for li in winners]
 	return movies
-
-get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 
 # 2. follow the link for each year’s winner
 
 # 3. grab the budget from the box on the right of the page
 
+def get_movie_budget(movie_url):
+	text_soup = BeautifulSoup(get_url_text('http://en.wikipedia.org{0}'.format(movie_url)))
+	side_table = text_soup('table')[0]('tr')
+	budget_table_rows = [tr for tr in side_table if re.search(r'>Budget<', str(tr))]
+	if len(budget_table_rows) > 0:
+		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
+	else:
+		budget = 'N/A'
+	return budget
+
 # 4. print out each Year-Title-Budget combination
+
+def get_all_movie_budgets():
+	movies = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+	for movie in movies:
+		movie.append(get_movie_budget(movie[0]))
+	return movies
 
 # 5. After printing each combination, it should print the average budget at the end
 
