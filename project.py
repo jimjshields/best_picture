@@ -45,7 +45,8 @@ def get_all_movie_budgets():
 	movie_list = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 	for movie in movie_list:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
-		print convert_budget_to_int(split_budget_text(movie[3]))
+		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
+		print movie
 	return movie_list
 
 # 5. After printing each combination, it should print the average budget at the end
@@ -60,7 +61,6 @@ def split_budget_text(budget_string):
 			digits = groups.group('digits').replace(',', '').strip()
 			units = groups.group('units').strip()
 			return (currency, digits, units)
-			# print 'Cur: {0}, Digits: {1}, Units: {2}'.format(currency, digits, units)
 
 def convert_budget_to_int(split_budget):
 	if split_budget == 'N/A':
@@ -72,13 +72,14 @@ def convert_budget_to_int(split_budget):
 		else:
 			return float(digits)
 
-get_all_movie_budgets()
-
 def get_average_budget():
 	movie_list = get_all_movie_budgets()
-	return reduce(lambda x: x + int(y[3]), movie_list, 0)
+	movies_with_budgets = filter(lambda x: x[4] != 'N/A', movie_list)
+	budgets_sum = reduce(lambda x, y: x + int(y[4]), movies_with_budgets, 0)
+	average_budget = budgets_sum / len(movies_with_budgets)
+	return '{:0,.2f}'.format(average_budget)
 
-# print get_average_budget()
+print get_average_budget()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
