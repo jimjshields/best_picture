@@ -28,7 +28,8 @@ def get_titles():
 	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
 	   list of BP winners will always be found in the same table."""
 
-	bp_text_soup = convert_html_to_bsoup('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+	bp_text_soup = convert_html_to_bsoup(
+					'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 	tables = bp_text_soup('table')
 
 	# By using negative indexing, assumes that it is more likely that other 
@@ -38,7 +39,8 @@ def get_titles():
 	# Assumes that the movie names will always have the year in parentheses
 	# following them and uses this pattern to match the list item for each movie.
 	winner_pattern = re.compile(r'.+\(.+\)')
-	winners = (li for li in possible_winners if re.match(winner_pattern, str(li)))
+	winners = (li for li in possible_winners 
+				if re.match(winner_pattern, str(li)))
 
 	movies = []
 
@@ -65,7 +67,8 @@ def get_movie_budget(movie_url):
 	"""Given the url for a particular movie, returns the budget of the movie
 	   as a string, or as 'N/A' if not found."""
 
-	movie_url_text = get_url_text('http://en.wikipedia.org{0}'.format(movie_url))
+	movie_url_text = get_url_text(
+		'http://en.wikipedia.org{0}'.format(movie_url))
 	movie_text_soup = BeautifulSoup(movie_url_text)
 	
 	# Assumes that the movie info will always be found in the first table.
@@ -76,7 +79,8 @@ def get_movie_budget(movie_url):
 	# Assumes that the budget figure will always be preceded by 'Budget,'
 	# enclosed in HTML tags.
 	budget_pattern = re.compile(r'>Budget<')
-	budget_table_rows = [tr for tr in movie_info_table_rows if re.search(budget_pattern, str(tr))]
+	budget_table_rows = [tr for tr in movie_info_table_rows
+						if re.search(budget_pattern, str(tr))]
 	
 	if len(budget_table_rows) > 0:
 
@@ -84,7 +88,7 @@ def get_movie_budget(movie_url):
 		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
 	else:
 		budget = 'N/A'
-		
+
 	return budget
 
 # 4. print out each Year-Title-Budget combination
