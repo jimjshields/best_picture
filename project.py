@@ -114,13 +114,25 @@ def split_budget_text(budget_string):
 			return (currency, digits, units)
 
 def convert_budget_to_int(split_budget):
+	"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
+	   units), returns either 'N/A' or the budget in ones."""
+
 	if split_budget == 'N/A':
 		return split_budget
 	else:
 		currency, digits, units = split_budget
-		if units == 'million':
+
+		# Assumes that the only possible units are millions, and if so, the 
+		# string always contains the substring 'million.' This is a fair
+		# assumption for now b/c we have the full dataset and that holds.
+		if 'million' in units:
+
+			# Float to correctly convert strings like '1.25 million'.
 			return float(digits) * 1000000
 		else:
+
+			# Float to correctly convert strings like '$2,840,000.'
+			# (trailing period).
 			return float(digits)
 
 def get_all_movie_budgets():
