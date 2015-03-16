@@ -79,27 +79,19 @@ def get_movie_budget(movie_url):
 
 # 4. print out each Year-Title-Budget combination
 
-def get_all_movie_budgets():
-	"""Gets all of the Best Picture movie data, and for each movie gets and
-	   appends its budget string and budget int to the table, returning the table."""
-
-	movie_data = get_titles()
-	for movie in movie_data:
-		movie.append(get_movie_budget(movie[0]).encode('utf8'))
-		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
-	return movie_data
-
-# 5. After printing each combination, it should print the average budget at the end
-
 def split_budget_text(budget_string):
+	"""Given a string representing a movie's budget, returns a tuple of
+	   currency, digits, and units."""
+
 	if budget_string == 'N/A':
 		return budget_string
 	else:
-		groups = re.match(r'(?P<currency>\D*)\s?(?P<digits>[\d,\,,\.]*)\s?(?P<units>\D*)', budget_string)
-		if groups:
-			currency = groups.group('currency').strip()
-			digits = groups.group('digits').replace(',', '').strip()
-			units = groups.group('units').strip()
+		budget_pattern = r'(\D*)\s?([\d,\,,\.]*)\s?(\D*)'
+		budget_groups = re.match(budget_pattern, budget_string)
+		if budget_groups:
+			currency = budget_groups.group(1).strip()
+			digits = budget_groups.group(2).replace(',', '').strip()
+			units = budget_groups.group(3).strip()
 			return (currency, digits, units)
 
 def convert_budget_to_int(split_budget):
@@ -111,6 +103,20 @@ def convert_budget_to_int(split_budget):
 			return float(digits) * 1000000
 		else:
 			return float(digits)
+
+def get_all_movie_budgets():
+	"""Gets all of the Best Picture movie data, and for each movie gets and
+	   appends its budget string and budget int to the table, returning the table."""
+
+	movie_data = get_titles()
+	for movie in movie_data:
+		movie.append(get_movie_budget(movie[0]).encode('utf8'))
+		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
+		print movie
+	return movie_data
+
+get_all_movie_budgets()
+# 5. After printing each combination, it should print the average budget at the end
 
 def get_average_budget():
 	movie_list = get_all_movie_budgets()
