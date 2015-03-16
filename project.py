@@ -40,13 +40,18 @@ def get_titles():
 	winner_pattern = re.compile(r'.+\(.+\)')
 	winners = (li for li in possible_winners if re.match(winner_pattern, str(li)))
 
+	movies = []
+
 	# Assumes that movies will continue to be structured as list items,
 	# with the url, title, and year found in the same place.
-	movies = []
 	for li in winners:
 		movie_url = li.a['href']
 		movie_title = li.a.string
-		movie_year = re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)
+
+		# Assumes that the year will always be found in parentheses
+		# following a </i> tag and prior to a </li> tag.
+		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
+		movie_year = re.search(year_pattern, str(li)).group(1)
 		movie_data = [movie_url, movie_title, movie_year]
 		movies.append(movie_data)
 
@@ -57,9 +62,15 @@ def get_titles():
 # 3. grab the budget from the box on the right of the page
 
 def get_movie_budget(movie_url):
-	text_soup = BeautifulSoup(get_url_text('http://en.wikipedia.org{0}'.format(movie_url)))
-	side_table = text_soup('table')[0]('tr')
-	budget_table_rows = [tr for tr in side_table if re.search(r'>Budget<', str(tr))]
+	"""Given the url for a particular movie, returns the budget of the movie
+	   as a string, or as 'N/A' if not found."""
+
+	movie_url_text = get_url_text('http://en.wikipedia.org{0}'.format(movie_url))
+	movie_text_soup = BeautifulSoup(movie_url_text)
+	movie_info_table_rows = movie_text_soup('table')[0]('tr')
+	budget_pattern = re.compile(r'>Budget<')
+	budget_table_rows = [tr for tr in movie_info_table_rows if re.search(budget_pattern, str(tr))]
+	
 	if len(budget_table_rows) > 0:
 		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
 	else:
@@ -69,12 +80,14 @@ def get_movie_budget(movie_url):
 # 4. print out each Year-Title-Budget combination
 
 def get_all_movie_budgets():
-	movie_list = get_titles()
-	for movie in movie_list:
+	"""Gets all of the Best Picture movie data, and for each movie gets and
+	   appends its budget string and budget int to the table, returning the table."""
+
+	movie_data = get_titles()
+	for movie in movie_data:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
-		print movie
-	return movie_list
+	return movie_data
 
 # 5. After printing each combination, it should print the average budget at the end
 
