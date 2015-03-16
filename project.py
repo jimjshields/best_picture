@@ -24,11 +24,32 @@ def convert_html_to_bsoup(url):
 	text_soup = BeautifulSoup(url_text)
 	return text_soup
 
-def get_titles(url):
-	tables = text_soup('table')
-	possible_winners = tables[96]('li')
-	winners = (li for li in possible_winners if re.match(r'.+\(.+\)', str(li)))
-	movies = [[li.a['href'], li.a.string, re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)] for li in winners]
+def get_titles():
+	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
+	   list of BP winners will always be found in the same table."""
+
+	bp_text_soup = convert_html_to_bsoup('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+	tables = bp_text_soup('table')
+
+	# By using negative indexing, assumes that it is more likely that other 
+	# tables will be added before this table, rather than after it. 
+	possible_winners = tables[-2]('li')
+
+	# Assumes that the movie names will always have the year in parentheses
+	# following them and uses this pattern to match the list item for each movie.
+	winner_pattern = re.compile(r'.+\(.+\)')
+	winners = (li for li in possible_winners if re.match(winner_pattern, str(li)))
+
+	# Assumes that movies will continue to be structured as list items,
+	# with the url, title, and year found in the same place.
+	movies = []
+	for li in winners:
+		movie_url = li.a['href']
+		movie_title = li.a.string
+		movie_year = re.search(r'</i>\s+\((.+)\)</li>', str(li)).group(1)
+		movie_data = [movie_url, movie_title, movie_year]
+		movies.append(movie_data)
+
 	return movies
 
 # 2. follow the link for each year’s winner
@@ -48,7 +69,7 @@ def get_movie_budget(movie_url):
 # 4. print out each Year-Title-Budget combination
 
 def get_all_movie_budgets():
-	movie_list = get_titles('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+	movie_list = get_titles()
 	for movie in movie_list:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
@@ -84,8 +105,6 @@ def get_average_budget():
 	budgets_sum = reduce(lambda x, y: x + int(y[4]), movies_with_budgets, 0)
 	average_budget = budgets_sum / len(movies_with_budgets)
 	return '{:0,.2f}'.format(average_budget)
-
-print get_average_budget()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
