@@ -67,14 +67,24 @@ def get_movie_budget(movie_url):
 
 	movie_url_text = get_url_text('http://en.wikipedia.org{0}'.format(movie_url))
 	movie_text_soup = BeautifulSoup(movie_url_text)
+	
+	# Assumes that the movie info will always be found in the first table.
+	# Given that it is the first table, I'm comfortable with the assumption
+	# that its position won't change.
 	movie_info_table_rows = movie_text_soup('table')[0]('tr')
+
+	# Assumes that the budget figure will always be preceded by 'Budget,'
+	# enclosed in HTML tags.
 	budget_pattern = re.compile(r'>Budget<')
 	budget_table_rows = [tr for tr in movie_info_table_rows if re.search(budget_pattern, str(tr))]
 	
 	if len(budget_table_rows) > 0:
+
+		# Assumes that there is only ever one budget.
 		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
 	else:
 		budget = 'N/A'
+		
 	return budget
 
 # 4. print out each Year-Title-Budget combination
