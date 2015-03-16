@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-
-import requests, re
-from bs4 import BeautifulSoup
-
 """Overall goal:  scrape the budgets of the Academy Award 
    Best Picture winners from Wikipedia."""
+
+from __future__ import division
+import requests, re
+from bs4 import BeautifulSoup
 
 # 1. Your script should go the the Wikipedia page for the award
 
 def get_url_text(url):
 	"""Given a url, return the text found at that url. Assumes the encoding
 	   of the response is the encoding indicated in the HTTP headers."""
+
+	# bytestr url => unicode text
 
 	url_response = requests.get(url)
 	url_text = url_response.text
@@ -21,6 +23,8 @@ def convert_html_to_bsoup(url):
 	"""Given a url, gets the text at that url and attempts to convert it to
 	   a BeautifulSoup object. Assumes that the text is HTML."""
 
+	# unicode text => BeautifulSoup object
+
 	url_text = get_url_text(url)
 	text_soup = BeautifulSoup(url_text)
 
@@ -29,6 +33,8 @@ def convert_html_to_bsoup(url):
 def get_bp_movie_data():
 	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
 	   list of BP winners will always be found in the same table."""
+
+	# unicode text => array of unicode text
 
 	bp_text_soup = convert_html_to_bsoup(
 				'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
@@ -42,7 +48,7 @@ def get_bp_movie_data():
 	# following them and uses this pattern to match the list item for each movie.
 	winner_pattern = re.compile(r'.+\(.+\)')
 	winners = (li for li in possible_winners 
-				if re.match(winner_pattern, str(li)))
+				if re.match(winner_pattern, unicode(li)))
 
 	movies = []
 
@@ -54,11 +60,13 @@ def get_bp_movie_data():
 
 		# Assumes that the year will always be found in parentheses
 		# following a </i> tag and prior to a </li> tag.
+
+		# TODO: Separate this out into its own function w/ the budget
+		# operations.
 		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
-		movie_year = re.search(year_pattern, str(li)).group(1)
+		movie_year = re.search(year_pattern, unicode(li)).group(1)
 		movie_data = [movie_url, movie_title, movie_year]
 		movies.append(movie_data)
-
 	return movies
 
 # 2. follow the link for each year’s winner
@@ -68,6 +76,8 @@ def get_bp_movie_data():
 def get_movie_budget(movie_url):
 	"""Given the url for a particular movie, returns the budget of the movie
 	   as a string, or as 'N/A' if not found."""
+
+	# string url => unicode budget
 
 	movie_url_text = get_url_text(
 				'http://en.wikipedia.org{0}'.format(movie_url))
@@ -82,18 +92,22 @@ def get_movie_budget(movie_url):
 	# enclosed in HTML tags.
 	budget_pattern = re.compile(r'>Budget<')
 	budget_table_rows = [tr for tr in movie_info_table_rows
-						if re.search(budget_pattern, str(tr))]
+						if re.search(budget_pattern, unicode(tr))]
 	
-	if len(budget_table_rows) > 0:
+	if len(budget_table_rows) == 1:
 
 		# Assumes that there is only ever one budget.
 		# Also assumes that the budget text will only come in this format:
 		# budgetstring[footnote num]
 		# And gets rid of that footnote if there is one.
-		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
-		budget.replace(u'\xc2', '').replace(u'\xa0', '')
-	else:
+		budget_text = budget_table_rows[0].td.get_text()
+		budget = re.sub(r'\[\d+\]', '', budget_text)
+		budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
+
+	elif len(budget_table_rows) == 0: 
 		budget = 'N/A'
+	else:
+		raise ValueError('More than one budget found on {0}.'.format(movie_url))
 
 	return budget
 
@@ -133,9 +147,9 @@ def convert_budget_to_int(split_budget):
 		# string always contains the substring 'million.' This is a fair
 		# assumption for now b/c we have the full dataset and that holds.
 			
-		if currency == u'\xa3':
+		if currency == u'£':
 
-			# TODO: Need to implement conversion function.
+		# 	# TODO: Need to implement conversion function.
 			digits = float(digits) * gbp_to_usd(year)
 
 		if 'million' in units:
@@ -155,7 +169,7 @@ def get_all_movie_budgets():
 
 	movie_data = get_bp_movie_data()
 	for movie in movie_data:
-		movie.append(get_movie_budget(movie[0]).encode('utf8'))
+		movie.append(get_movie_budget(movie[0]))
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
 
 	return movie_data
@@ -168,13 +182,11 @@ def get_average_budget():
 
 	movie_data = get_all_movie_budgets()
 	movies_with_budgets = [movie for movie in movie_data if movie[4] != 'N/A']
-	budgets_sum = reduce(lambda x, y: x + int(y[4]), movies_with_budgets, 0)
-	average_budget = budgets_sum / len(movies_with_budgets)
+	movie_budgets = [movie[4] for movie in movies_with_budgets]
+	budgets_sum = sum(movie_budgets)
+	average_budget = budgets_sum / len(movie_budgets)
 
 	return '{:0,.2f}'.format(average_budget)
-
-# import pprint
-# pprint.pprint(map(lambda x: [x[0]] + x[3:], get_all_movie_budgets()))
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
