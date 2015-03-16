@@ -24,12 +24,12 @@ def convert_html_to_bsoup(url):
 	text_soup = BeautifulSoup(url_text)
 	return text_soup
 
-def get_titles():
+def get_bp_movie_data():
 	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
 	   list of BP winners will always be found in the same table."""
 
 	bp_text_soup = convert_html_to_bsoup(
-					'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+				'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 	tables = bp_text_soup('table')
 
 	# By using negative indexing, assumes that it is more likely that other 
@@ -68,7 +68,7 @@ def get_movie_budget(movie_url):
 	   as a string, or as 'N/A' if not found."""
 
 	movie_url_text = get_url_text(
-		'http://en.wikipedia.org{0}'.format(movie_url))
+				'http://en.wikipedia.org{0}'.format(movie_url))
 	movie_text_soup = BeautifulSoup(movie_url_text)
 	
 	# Assumes that the movie info will always be found in the first table.
@@ -100,10 +100,15 @@ def split_budget_text(budget_string):
 	if budget_string == 'N/A':
 		return budget_string
 	else:
-		budget_pattern = r'(\D*)\s?([\d,\,,\.]*)\s?(\D*)'
+
+		# Assumes that the budget will always be formatted as: 
+		# [nonint curr symbol] [ints w/ possible commas\periods] [nonint units]
+		budget_pattern = r'(\D*)\s?([\d, \,, \.]*)\s?(\D*)'
 		budget_groups = re.match(budget_pattern, budget_string)
 		if budget_groups:
 			currency = budget_groups.group(1).strip()
+
+			# Assumes that decimal points are important, but commas are not.
 			digits = budget_groups.group(2).replace(',', '').strip()
 			units = budget_groups.group(3).strip()
 			return (currency, digits, units)
@@ -122,22 +127,26 @@ def get_all_movie_budgets():
 	"""Gets all of the Best Picture movie data, and for each movie gets and
 	   appends its budget string and budget int to the table, returning the table."""
 
-	movie_data = get_titles()
+	movie_data = get_bp_movie_data()
 	for movie in movie_data:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
 		print movie
 	return movie_data
 
-get_all_movie_budgets()
 # 5. After printing each combination, it should print the average budget at the end
 
 def get_average_budget():
-	movie_list = get_all_movie_budgets()
-	movies_with_budgets = filter(lambda x: x[4] != 'N/A', movie_list)
+	"""After retrieving all of the movie data w/ budgets, returns the average
+	   budget of movies that provide a budget."""
+
+	movie_data = get_all_movie_budgets()
+	movies_with_budgets = [movie for movie in movie_data if movie[4] != 'N/A']
 	budgets_sum = reduce(lambda x, y: x + int(y[4]), movies_with_budgets, 0)
 	average_budget = budgets_sum / len(movies_with_budgets)
 	return '{:0,.2f}'.format(average_budget)
+
+print get_average_budget()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
