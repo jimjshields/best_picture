@@ -16,9 +16,15 @@ def get_url_text(url):
 	url_text = url_response.text
 	return url_text
 
-def get_titles(url):
+def convert_html_to_bsoup(url):
+	"""Given a url, gets the text at that url and attempts to convert it to
+	   a BeautifulSoup object. Assumes that the text is HTML."""
+
 	url_text = get_url_text(url)
 	text_soup = BeautifulSoup(url_text)
+	return text_soup
+
+def get_titles(url):
 	tables = text_soup('table')
 	possible_winners = tables[96]('li')
 	winners = (li for li in possible_winners if re.match(r'.+\(.+\)', str(li)))
