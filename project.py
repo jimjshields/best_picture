@@ -14,6 +14,7 @@ def get_url_text(url):
 
 	url_response = requests.get(url)
 	url_text = url_response.text
+
 	return url_text
 
 def convert_html_to_bsoup(url):
@@ -22,6 +23,7 @@ def convert_html_to_bsoup(url):
 
 	url_text = get_url_text(url)
 	text_soup = BeautifulSoup(url_text)
+
 	return text_soup
 
 def get_bp_movie_data():
@@ -85,7 +87,11 @@ def get_movie_budget(movie_url):
 	if len(budget_table_rows) > 0:
 
 		# Assumes that there is only ever one budget.
+		# Also assumes that the budget text will only come in this format:
+		# budgetstring[footnote num]
+		# And gets rid of that footnote if there is one.
 		budget = re.sub(r'\[\d+\]', '', budget_table_rows[0].td.get_text())
+		budget.replace(u'\xc2', '').replace(u'\xa0', '')
 	else:
 		budget = 'N/A'
 
@@ -111,6 +117,7 @@ def split_budget_text(budget_string):
 			# Assumes that decimal points are important, but commas are not.
 			digits = budget_groups.group(2).replace(',', '').strip()
 			units = budget_groups.group(3).strip()
+
 			return (currency, digits, units)
 
 def convert_budget_to_int(split_budget):
@@ -125,6 +132,12 @@ def convert_budget_to_int(split_budget):
 		# Assumes that the only possible units are millions, and if so, the 
 		# string always contains the substring 'million.' This is a fair
 		# assumption for now b/c we have the full dataset and that holds.
+			
+		if currency == u'\xa3':
+
+			# TODO: Need to implement conversion function.
+			digits = float(digits) * gbp_to_usd(year)
+
 		if 'million' in units:
 
 			# Float to correctly convert strings like '1.25 million'.
@@ -137,13 +150,14 @@ def convert_budget_to_int(split_budget):
 
 def get_all_movie_budgets():
 	"""Gets all of the Best Picture movie data, and for each movie gets and
-	   appends its budget string and budget int to the table, returning the table."""
+	   appends its budget string and budget int to the table, returning the 
+	   table."""
 
 	movie_data = get_bp_movie_data()
 	for movie in movie_data:
 		movie.append(get_movie_budget(movie[0]).encode('utf8'))
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
-		print movie
+
 	return movie_data
 
 # 5. After printing each combination, it should print the average budget at the end
@@ -156,9 +170,11 @@ def get_average_budget():
 	movies_with_budgets = [movie for movie in movie_data if movie[4] != 'N/A']
 	budgets_sum = reduce(lambda x, y: x + int(y[4]), movies_with_budgets, 0)
 	average_budget = budgets_sum / len(movies_with_budgets)
+
 	return '{:0,.2f}'.format(average_budget)
 
-print get_average_budget()
+# import pprint
+# pprint.pprint(map(lambda x: [x[0]] + x[3:], get_all_movie_budgets()))
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
