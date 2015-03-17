@@ -192,9 +192,6 @@ class BestPicturePageData(PageData):
 
 		return '{:0,.2f}'.format(average_budget)
 
-bp_data = BestPicturePageData()
-print bp_data.get_average_budget()
-
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
 production standards.
