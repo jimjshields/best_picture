@@ -30,6 +30,20 @@ def convert_html_to_bsoup(url):
 
 	return text_soup
 
+def convert_li_to_movie_data(li):
+	"""Given a BeautifulSoup li object of a prespecified pattern, returns a list
+	   of movie_url, movie_title, and movie_year."""
+
+	movie_url = li.a['href']
+	movie_title = li.a.string
+
+	# Assumes that the year will always be found in parentheses
+	# following a </i> tag and prior to a </li> tag.
+
+	year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
+	movie_year = re.search(year_pattern, unicode(li)).group(1)
+	return [movie_url, movie_title, movie_year]
+
 def get_bp_movie_data():
 	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
 	   list of BP winners will always be found in the same table."""
@@ -55,19 +69,12 @@ def get_bp_movie_data():
 	# Assumes that movies will continue to be structured as list items,
 	# with the url, title, and year found in the same place.
 	for li in winners:
-		movie_url = li.a['href']
-		movie_title = li.a.string
-
-		# Assumes that the year will always be found in parentheses
-		# following a </i> tag and prior to a </li> tag.
-
-		# TODO: Separate this out into its own function w/ the budget
-		# operations.
-		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
-		movie_year = re.search(year_pattern, unicode(li)).group(1)
-		movie_data = [movie_url, movie_title, movie_year]
+		movie_data = convert_li_to_movie_data(li)
 		movies.append(movie_data)
 	return movies
+
+print get_bp_movie_data()
+
 
 # 2. follow the link for each year’s winner
 
@@ -149,7 +156,8 @@ def convert_budget_to_int(split_budget):
 			
 		if currency == u'£':
 
-		# 	# TODO: Need to implement conversion function.
+			# TODO: Need to implement conversion function.
+			# http://fxtop.com/en/historical-exchange-rates.php?YA=1&C1=GBP&C2=USD&A=1&YYYY1=1953&MM1=01&DD1=01&YYYY2=2015&MM2=03&DD2=16&LANG=en
 			digits = float(digits) * gbp_to_usd(year)
 
 		if 'million' in units:
