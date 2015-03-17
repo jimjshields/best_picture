@@ -72,7 +72,7 @@ class MovieData(PageData):
 			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
 
 		elif len(budget_table_rows) == 0: 
-			budget = 'N/A'
+			budget = u'N/A'
 		else:
 			raise ValueError('More than one budget found on {0}.'.format(self.movie_url))
 
