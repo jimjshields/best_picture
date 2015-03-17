@@ -6,8 +6,6 @@ from __future__ import division
 import requests, re
 from bs4 import BeautifulSoup
 
-# 1. Your script should go the the Wikipedia page for the award
-
 class PageData(object):
 	"""Stores attributes and methods of getting data from a webpage."""
 
@@ -89,99 +87,104 @@ class BestPicturePageData(PageData):
 			movies.append(movie_data)
 		return movies
 
-# 2. follow the link for each year’s winner
+class MovieData(PageData):
+	"""Stores attributes and methods of getting data from a movie's Wiki page."""
 
-# 3. grab the budget from the box on the right of the page
+	def __init__(self, movie_url):
+		"""Initializes with the BeautifulSoup object of the movie's Wiki page."""
 
-def get_movie_budget(movie_url):
-	"""Given the url for a particular movie, returns the budget of the movie
-	   as a string, or as 'N/A' if not found."""
+		self.movie_url = movie_url
+		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
+		self.text_soup = self.page_data.text_soup
+		self.budget = self.get_movie_budget()
+		self.split_budget = self.split_budget_text(self.budget)
+		self.budget_int = self.convert_budget_to_int(self.split_budget)
 
-	# string url => unicode budget
+	def get_movie_budget(self):
+		"""Given the url for a particular movie, returns the budget of the movie
+		   as a string, or as 'N/A' if not found."""
 
-	movie_url_text = get_url_text(
-				'http://en.wikipedia.org{0}'.format(movie_url))
-	movie_text_soup = BeautifulSoup(movie_url_text)
-	
-	# Assumes that the movie info will always be found in the first table.
-	# Given that it is the first table, I'm comfortable with the assumption
-	# that its position won't change.
-	movie_info_table_rows = movie_text_soup('table')[0]('tr')
+		# string url => unicode budget
+		
+		# Assumes that the movie info will always be found in the first table.
+		# Given that it is the first table, I'm comfortable with the assumption
+		# that its position won't change.
+		movie_info_table_rows = self.text_soup('table')[0]('tr')
 
-	# Assumes that the budget figure will always be preceded by 'Budget,'
-	# enclosed in HTML tags.
-	budget_pattern = re.compile(r'>Budget<')
-	budget_table_rows = [tr for tr in movie_info_table_rows
-						if re.search(budget_pattern, unicode(tr))]
-	
-	if len(budget_table_rows) == 1:
+		# Assumes that the budget figure will always be preceded by 'Budget,'
+		# enclosed in HTML tags.
+		budget_pattern = re.compile(r'>Budget<')
+		budget_table_rows = [tr for tr in movie_info_table_rows
+							if re.search(budget_pattern, unicode(tr))]
+		
+		if len(budget_table_rows) == 1:
 
-		# Assumes that there is only ever one budget.
-		# Also assumes that the budget text will only come in this format:
-		# budgetstring[footnote num]
-		# And gets rid of that footnote if there is one.
-		budget_text = budget_table_rows[0].td.get_text()
-		budget = re.sub(r'\[\d+\]', '', budget_text)
-		budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
+			# Assumes that there is only ever one budget.
+			# Also assumes that the budget text will only come in this format:
+			# budgetstring[footnote num]
+			# And gets rid of that footnote if there is one.
+			budget_text = budget_table_rows[0].td.get_text()
+			budget = re.sub(r'\[\d+\]', '', budget_text)
+			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
 
-	elif len(budget_table_rows) == 0: 
-		budget = 'N/A'
-	else:
-		raise ValueError('More than one budget found on {0}.'.format(movie_url))
+		elif len(budget_table_rows) == 0: 
+			budget = 'N/A'
+		else:
+			raise ValueError('More than one budget found on {0}.'.format(self.movie_url))
 
-	return budget
+		return budget
 
-# 4. print out each Year-Title-Budget combination
+	# 4. print out each Year-Title-Budget combination
 
-def split_budget_text(budget_string):
-	"""Given a string representing a movie's budget, returns a tuple of
-	   currency, digits, and units."""
+	def split_budget_text(self, budget_string):
+		"""Given a string representing a movie's budget, returns a tuple of
+		   currency, digits, and units."""
 
-	if budget_string == 'N/A':
-		return budget_string
-	else:
-
-		# Assumes that the budget will always be formatted as: 
-		# [nonint curr symbol] [ints w/ possible commas\periods] [nonint units]
-		budget_pattern = r'(\D*)\s?([\d, \,, \.]*)\s?(\D*)'
-		budget_groups = re.match(budget_pattern, budget_string)
-		if budget_groups:
-			currency = budget_groups.group(1).strip()
-
-			# Assumes that decimal points are important, but commas are not.
-			digits = budget_groups.group(2).replace(',', '').strip()
-			units = budget_groups.group(3).strip()
-
-			return (currency, digits, units)
-
-def convert_budget_to_int(split_budget):
-	"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
-	   units), returns either 'N/A' or the budget in ones."""
-
-	if split_budget == 'N/A':
-		return split_budget
-	else:
-		currency, digits, units = split_budget
-
-		# Assumes that the only possible units are millions, and if so, the 
-		# string always contains the substring 'million.' This is a fair
-		# assumption for now b/c we have the full dataset and that holds.
-			
-		if currency == u'£':
-
-			# TODO: Need to implement conversion function.
-			# http://fxtop.com/en/historical-exchange-rates.php?YA=1&C1=GBP&C2=USD&A=1&YYYY1=1953&MM1=01&DD1=01&YYYY2=2015&MM2=03&DD2=16&LANG=en
-			digits = float(digits) * gbp_to_usd(year)
-
-		if 'million' in units:
-
-			# Float to correctly convert strings like '1.25 million'.
-			return float(digits) * 1000000
+		if budget_string == 'N/A':
+			return budget_string
 		else:
 
-			# Float to correctly convert strings like '$2,840,000.'
-			# (trailing period).
-			return float(digits)
+			# Assumes that the budget will always be formatted as: 
+			# [nonint curr symbol] [ints w/ possible commas\periods] [nonint units]
+			budget_pattern = r'(\D*)\s?([\d, \,, \.]*)\s?(\D*)'
+			budget_groups = re.match(budget_pattern, budget_string)
+			if budget_groups:
+				currency = budget_groups.group(1).strip()
+
+				# Assumes that decimal points are important, but commas are not.
+				digits = budget_groups.group(2).replace(',', '').strip()
+				units = budget_groups.group(3).strip()
+
+				return (currency, digits, units)
+
+	def convert_budget_to_int(self, split_budget):
+		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
+		   units), returns either 'N/A' or the budget in ones."""
+
+		if split_budget == 'N/A':
+			return split_budget
+		else:
+			currency, digits, units = split_budget
+
+			# Assumes that the only possible units are millions, and if so, the 
+			# string always contains the substring 'million.' This is a fair
+			# assumption for now b/c we have the full dataset and that holds.
+				
+			# if currency == u'£':
+
+			# 	# TODO: Need to implement conversion function.
+			# 	# http://fxtop.com/en/historical-exchange-rates.php?YA=1&C1=GBP&C2=USD&A=1&YYYY1=1953&MM1=01&DD1=01&YYYY2=2015&MM2=03&DD2=16&LANG=en
+			# 	digits = float(digits) * gbp_to_usd(year)
+
+			if 'million' in units:
+
+				# Float to correctly convert strings like '1.25 million'.
+				return float(digits) * 1000000
+			else:
+
+				# Float to correctly convert strings like '$2,840,000.'
+				# (trailing period).
+				return float(digits)
 
 def get_all_movie_budgets():
 	"""Gets all of the Best Picture movie data, and for each movie gets and
@@ -194,8 +197,6 @@ def get_all_movie_budgets():
 		movie.append(convert_budget_to_int(split_budget_text(movie[3])))
 
 	return movie_data
-
-# 5. After printing each combination, it should print the average budget at the end
 
 def get_average_budget():
 	"""After retrieving all of the movie data w/ budgets, returns the average
