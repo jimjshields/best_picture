@@ -105,8 +105,8 @@ class MovieData(PageData):
 		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
 		   units), returns either 'N/A' or the budget in ones."""
 
-		if split_budget == 'N/A':
-			return split_budget
+		if split_budget == u'N/A':
+			converted_budget = split_budget
 		else:
 			currency, digits, units = split_budget
 
@@ -123,12 +123,17 @@ class MovieData(PageData):
 			if 'million' in units:
 
 				# Float to correctly convert strings like '1.25 million'.
-				return float(digits) * 1000000
+				converted_budget = float(digits) * 1000000
 			else:
 
 				# Float to correctly convert strings like '$2,840,000.'
 				# (trailing period).
-				return float(digits)
+				converted_budget = float(digits)
+
+		if isinstance(converted_budget, float) and converted_budget < 10000:
+			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
+
+		return converted_budget
 
 class BestPicturePageData(PageData):
 	"""Stores attributes and methods of getting data from the Best Picture Oscar Wiki page."""
@@ -177,7 +182,6 @@ class BestPicturePageData(PageData):
 			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(li)
 			movie_budget_int = MovieData(movie_url).budget_int
 			movie_data = [movie_url, movie_title, movie_year, movie_budget_int]
-			print movie_data
 			movies.append(movie_data)
 		return movies
 
