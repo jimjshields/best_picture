@@ -13,13 +13,14 @@ class PageData(object):
 		"""Initializes with the text found at the url, and the BeautifulSoup object
 		   of the text."""
 
-		self.text = self.get_url_text(url)
+		self.url = url
+		self.text = self.get_url_text()
 	
-	def get_url_text(self, url):
+	def get_url_text(self):
 		"""Given a url, return the text found at that url. Assumes the encoding
 		   of the response is the encoding indicated in the HTTP headers."""
 
-		url_response = requests.get(url)
+		url_response = requests.get(self.url)
 		url_text = url_response.text
 
 		return url_text
