@@ -175,7 +175,7 @@ class BestPicturePageData(PageData):
 		winners = (li for li in possible_winners 
 					if re.match(winner_pattern, unicode(li)))
 
-		movies = []
+		movies = {}
 		movie_data = namedtuple('MovieData', 'url, title, year, budget_int')
 		# Assumes that movies will continue to be structured as list items,
 		# with the url, title, and year found in the same place.
@@ -183,7 +183,7 @@ class BestPicturePageData(PageData):
 			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(li)
 			movie_budget_int = MovieData(movie_url).budget_int
 			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_int)
-			movies.append(movie_data_tuple)
+			movies[movie_title] = (movie_data_tuple)
 		return movies
 
 	def get_average_budget(self):
@@ -197,6 +197,8 @@ class BestPicturePageData(PageData):
 		average_budget = budgets_sum / len(movie_budgets)
 
 		return '{:0,.2f}'.format(average_budget)
+
+print BestPicturePageData().get_bp_movie_data()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
