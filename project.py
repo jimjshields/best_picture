@@ -9,16 +9,16 @@ from bs4 import BeautifulSoup
 # 1. Your script should go the the Wikipedia page for the award
 
 class PageData(object):
-	"""Stores attributes and methods associated with getting data from a webpage."""
+	"""Stores attributes and methods of getting data from a webpage."""
 
 	def __init__(self, url):
 		"""Initializes with the text found at the url, and the BeautifulSoup object
 		   of the text."""
 
-		self.text = get_url_text(url)
-		self.beautiful_soup = convert_html_to_bsoup(self.text)
+		self.text = self.get_url_text(url)
+		self.text_soup = self.convert_html_to_bsoup(self.text)
 	
-	def get_url_text(url):
+	def get_url_text(self, url):
 		"""Given a url, return the text found at that url. Assumes the encoding
 		   of the response is the encoding indicated in the HTTP headers."""
 
@@ -29,7 +29,7 @@ class PageData(object):
 
 		return url_text
 
-	def convert_html_to_bsoup(url_text):
+	def convert_html_to_bsoup(self, url_text):
 		"""Given url text, gets the text at that url and attempts to convert it to
 		   a BeautifulSoup object. Assumes that the text is HTML."""
 
@@ -39,51 +39,55 @@ class PageData(object):
 
 		return text_soup
 
-def convert_li_to_movie_data(li):
-	"""Given a BeautifulSoup li object of a prespecified pattern, returns a list
-	   of movie_url, movie_title, and movie_year."""
+class BestPicturePageData(PageData):
+	"""Stores attributes and methods of getting data from the Best Picture Oscar Wiki page."""
 
-	movie_url = li.a['href']
-	movie_title = li.a.string
+	def __init__(self):
+		"""Initializes with the BeautifulSoup object of the Wiki page."""
 
-	# Assumes that the year will always be found in parentheses
-	# following a </i> tag and prior to a </li> tag.
+		self.page_data = PageData('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
+		self.text_soup = self.page_data.text_soup
 
-	year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
-	movie_year = re.search(year_pattern, unicode(li)).group(1)
-	return [movie_url, movie_title, movie_year]
+	def convert_li_to_movie_data(self, li):
+		"""Given a BeautifulSoup li object of a prespecified pattern, returns a list
+		   of movie_url, movie_title, and movie_year."""
 
-def get_bp_movie_data():
-	"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
-	   list of BP winners will always be found in the same table."""
+		movie_url = li.a['href']
+		movie_title = li.a.string
 
-	# unicode text => array of unicode text
+		# Assumes that the year will always be found in parentheses
+		# following a </i> tag and prior to a </li> tag.
 
-	bp_text_soup = convert_html_to_bsoup(
-				'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
-	tables = bp_text_soup('table')
+		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
+		movie_year = re.search(year_pattern, unicode(li)).group(1)
+		return [movie_url, movie_title, movie_year]
 
-	# By using negative indexing, assumes that it is more likely that other 
-	# tables will be added before this table, rather than after it. 
-	possible_winners = tables[-2]('li')
+	def get_bp_movie_data(self):
+		"""Specific to the Academy Award Best Picture Wiki page. Assumes that the
+		   list of BP winners will always be found in the same table."""
 
-	# Assumes that the movie names will always have the year in parentheses
-	# following them and uses this pattern to match the list item for each movie.
-	winner_pattern = re.compile(r'.+\(.+\)')
-	winners = (li for li in possible_winners 
-				if re.match(winner_pattern, unicode(li)))
+		# unicode text => array of unicode text
 
-	movies = []
+		tables = self.text_soup('table')
 
-	# Assumes that movies will continue to be structured as list items,
-	# with the url, title, and year found in the same place.
-	for li in winners:
-		movie_data = convert_li_to_movie_data(li)
-		movies.append(movie_data)
-	return movies
+		# By using negative indexing, assumes that it is more likely that other 
+		# tables will be added before this table, rather than after it. 
+		possible_winners = tables[-2]('li')
 
-print get_bp_movie_data()
+		# Assumes that the movie names will always have the year in parentheses
+		# following them and uses this pattern to match the list item for each movie.
+		winner_pattern = re.compile(r'.+\(.+\)')
+		winners = (li for li in possible_winners 
+					if re.match(winner_pattern, unicode(li)))
 
+		movies = []
+
+		# Assumes that movies will continue to be structured as list items,
+		# with the url, title, and year found in the same place.
+		for li in winners:
+			movie_data = self.convert_li_to_movie_data(li)
+			movies.append(movie_data)
+		return movies
 
 # 2. follow the link for each year’s winner
 
