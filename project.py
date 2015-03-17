@@ -7,6 +7,10 @@ import requests, re
 from bs4 import BeautifulSoup
 from collections import namedtuple
 
+# Because there are only 3 budgets denoted in pounds, I'm hardcoding a dict of just those year's exchange rates.
+# Should there be a new one, a KeyError would be thrown.
+GDP_TO_USD_DICT = {u'1948': 2.785456, u'1981': 2.026220, u'2010': 1.545204}
+
 class PageData(object):
 	"""Stores attributes and methods of getting data from a webpage."""
 
@@ -37,10 +41,12 @@ class PageData(object):
 class MovieData(PageData):
 	"""Stores attributes and methods of getting data from a movie's Wiki page."""
 
-	def __init__(self, movie_url):
+	def __init__(self, movie_url, movie_title, movie_year):
 		"""Initializes with the BeautifulSoup object of the movie's Wiki page."""
 
 		self.movie_url = movie_url
+		self.movie_title = movie_title
+		self.movie_year = movie_year
 		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
 		self.text_soup = self.page_data.get_soup_from_text()
 		self.budget_str = self.get_movie_budget()
@@ -90,8 +96,8 @@ class MovieData(PageData):
 		else:
 
 			# Assumes that the budget will always be formatted as: 
-			# [nonint curr symbol] [ints w/ possible commas\periods] [nonint units]
-			budget_pattern = r'(\D*)\s?([\d, \,, \.]*)\s?(\D*)'
+			# [curr symbol] [ints w/ commas/periods/unicode dashes] [units]
+			budget_pattern = ur'(\D*)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
 			budget_groups = re.match(budget_pattern, budget_string)
 			if budget_groups:
 				currency = budget_groups.group(1).strip()
@@ -117,12 +123,11 @@ class MovieData(PageData):
 			# string always contains the substring 'million.' This is a fair
 			# assumption for now b/c we have the full dataset and that holds.
 				
-			# if currency == u'£':
-
-			# 	# TODO: Need to implement conversion function.
-			# 	# http://fxtop.com/en/historical-exchange-rates.php?YA=1&C1=GBP&C2=USD&A=1&YYYY1=1953&MM1=01&DD1=01&YYYY2=2015&MM2=03&DD2=16&LANG=en
-			# 	digits = float(digits) * gbp_to_usd(year)
-
+			if u'–' in digits:
+				first, second = digits.split(u'–')
+				digits = (float(first) + float(second))/2
+			if currency == u'£':
+				digits = float(digits) * GDP_TO_USD_DICT[self.movie_year]
 			if 'million' in units:
 
 				# Float to correctly convert strings like '1.25 million'.
@@ -133,8 +138,9 @@ class MovieData(PageData):
 				# (trailing period).
 				converted_budget = float(digits)
 
-		# if isinstance(converted_budget, float) and converted_budget < 10000:
-		# 	raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
+		# Check to make sure the output makes sense — assuming a movie bucget will be at least $10,000.
+		if isinstance(converted_budget, float) and converted_budget < 10000:
+			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
 
 		return converted_budget
 
@@ -156,7 +162,6 @@ class BestPicturePageData(PageData):
 
 		# Assumes that the year will always be found in parentheses
 		# following a </i> tag and prior to a </li> tag.
-
 		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
 		movie_year = re.search(year_pattern, unicode(li)).group(1)
 
@@ -186,7 +191,7 @@ class BestPicturePageData(PageData):
 		for list_item in winners:
 			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(list_item)
 			
-			movie_obj = MovieData(movie_url)
+			movie_obj = MovieData(movie_url, movie_title, movie_year)
 			movie_budget_str = movie_obj.budget_str
 			movie_budget_int = movie_obj.budget_int
 			

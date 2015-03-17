@@ -27,7 +27,7 @@ class TestMovieData(unittest.TestCase):
 
 	def setUp(self):
 		self.movie_data_obj = project.MovieData(
-			'/wiki/The_Silence_of_the_Lambs_%28film%29')
+			u'/wiki/The_Silence_of_the_Lambs_%28film%29', u'The Silence of the Lambs', u'1991')
 		self.movie_budget_str = self.movie_data_obj.get_movie_budget()
 		self.split_budget = self.movie_data_obj.split_budget_text(
 			self.movie_budget_str)
