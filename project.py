@@ -43,8 +43,8 @@ class MovieData(PageData):
 		self.movie_url = movie_url
 		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
 		self.text_soup = self.page_data.get_soup_from_text()
-		self.budget = self.get_movie_budget()
-		self.split_budget = self.split_budget_text(self.budget)
+		self.budget_str = self.get_movie_budget()
+		self.split_budget = self.split_budget_text(self.budget_str)
 		self.budget_int = self.convert_budget_to_int(self.split_budget)
 
 	def get_movie_budget(self):
@@ -86,7 +86,7 @@ class MovieData(PageData):
 		   currency, digits, and units."""
 
 		if budget_string == 'N/A':
-			return budget_string
+			split_budget = budget_string
 		else:
 
 			# Assumes that the budget will always be formatted as: 
@@ -100,7 +100,9 @@ class MovieData(PageData):
 				digits = budget_groups.group(2).replace(',', '').strip()
 				units = budget_groups.group(3).strip()
 
-				return (currency, digits, units)
+				split_budget = (currency, digits, units)
+
+		return split_budget
 
 	def convert_budget_to_int(self, split_budget):
 		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
@@ -131,8 +133,8 @@ class MovieData(PageData):
 				# (trailing period).
 				converted_budget = float(digits)
 
-		if isinstance(converted_budget, float) and converted_budget < 10000:
-			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
+		# if isinstance(converted_budget, float) and converted_budget < 10000:
+		# 	raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
 
 		return converted_budget
 
@@ -157,6 +159,7 @@ class BestPicturePageData(PageData):
 
 		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
 		movie_year = re.search(year_pattern, unicode(li)).group(1)
+
 		return movie_url, movie_title, movie_year
 
 	def get_bp_movie_data(self):
@@ -175,15 +178,23 @@ class BestPicturePageData(PageData):
 		winners = (li for li in possible_winners 
 					if re.match(winner_pattern, unicode(li)))
 
-		movies = {}
-		movie_data = namedtuple('MovieData', 'url, title, year, budget_int')
+		movies = []
+		movie_data = namedtuple('MovieData', 'url, title, year, budget_str, budget_int')
+
 		# Assumes that movies will continue to be structured as list items,
 		# with the url, title, and year found in the same place.
-		for li in winners:
-			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(li)
-			movie_budget_int = MovieData(movie_url).budget_int
-			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_int)
-			movies[movie_title] = (movie_data_tuple)
+		for list_item in winners:
+			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(list_item)
+			
+			movie_obj = MovieData(movie_url)
+			movie_budget_str = movie_obj.budget_str
+			movie_budget_int = movie_obj.budget_int
+			
+			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_str, movie_budget_int)
+			movies.append(movie_data_tuple)
+
+			print movie_data_tuple
+
 		return movies
 
 	def get_average_budget(self):
@@ -191,14 +202,12 @@ class BestPicturePageData(PageData):
 		   budget of movies that provide a budget."""
 
 		self.bp_movie_data = self.get_bp_movie_data()
-		movies_with_budgets = [movie for movie in self.bp_movie_data if movie[3] != 'N/A']
-		movie_budgets = [movie[3] for movie in movies_with_budgets]
-		budgets_sum = sum(movie_budgets)
-		average_budget = budgets_sum / len(movie_budgets)
+		movie_budgets = [movie.budget_int for movie in self.bp_movie_data if movie.budget_int != u'N/A']
+		average_budget = sum(movie_budgets) / len(movie_budgets)
 
 		return '{:0,.2f}'.format(average_budget)
 
-print BestPicturePageData().get_bp_movie_data()
+print BestPicturePageData().get_average_budget()
 
 """If you encounter any edge cases, feel free to use your best judgement 
 and add a comment with your conclusion. This code should be written to 
