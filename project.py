@@ -5,6 +5,7 @@
 from __future__ import division
 import requests, re
 from bs4 import BeautifulSoup
+from collections import namedtuple
 
 class PageData(object):
 	"""Stores attributes and methods of getting data from a webpage."""
@@ -175,14 +176,14 @@ class BestPicturePageData(PageData):
 					if re.match(winner_pattern, unicode(li)))
 
 		movies = []
-
+		movie_data = namedtuple('MovieData', 'url, title, year, budget_int')
 		# Assumes that movies will continue to be structured as list items,
 		# with the url, title, and year found in the same place.
 		for li in winners:
 			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(li)
 			movie_budget_int = MovieData(movie_url).budget_int
-			movie_data = [movie_url, movie_title, movie_year, movie_budget_int]
-			movies.append(movie_data)
+			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_int)
+			movies.append(movie_data_tuple)
 		return movies
 
 	def get_average_budget(self):
