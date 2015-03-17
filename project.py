@@ -8,27 +8,36 @@ from bs4 import BeautifulSoup
 
 # 1. Your script should go the the Wikipedia page for the award
 
-def get_url_text(url):
-	"""Given a url, return the text found at that url. Assumes the encoding
-	   of the response is the encoding indicated in the HTTP headers."""
+class PageData(object):
+	"""Stores attributes and methods associated with getting data from a webpage."""
 
-	# bytestr url => unicode text
+	def __init__(self, url):
+		"""Initializes with the text found at the url, and the BeautifulSoup object
+		   of the text."""
 
-	url_response = requests.get(url)
-	url_text = url_response.text
+		self.text = get_url_text(url)
+		self.beautiful_soup = convert_html_to_bsoup(self.text)
+	
+	def get_url_text(url):
+		"""Given a url, return the text found at that url. Assumes the encoding
+		   of the response is the encoding indicated in the HTTP headers."""
 
-	return url_text
+		# bytestr url => unicode text
 
-def convert_html_to_bsoup(url):
-	"""Given a url, gets the text at that url and attempts to convert it to
-	   a BeautifulSoup object. Assumes that the text is HTML."""
+		url_response = requests.get(url)
+		url_text = url_response.text
 
-	# unicode text => BeautifulSoup object
+		return url_text
 
-	url_text = get_url_text(url)
-	text_soup = BeautifulSoup(url_text)
+	def convert_html_to_bsoup(url_text):
+		"""Given url text, gets the text at that url and attempts to convert it to
+		   a BeautifulSoup object. Assumes that the text is HTML."""
 
-	return text_soup
+		# unicode text => BeautifulSoup object
+
+		text_soup = BeautifulSoup(url_text)
+
+		return text_soup
 
 def convert_li_to_movie_data(li):
 	"""Given a BeautifulSoup li object of a prespecified pattern, returns a list
