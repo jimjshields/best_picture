@@ -48,7 +48,7 @@ class TestMovieData(unittest.TestCase):
 		self.assertTrue(type(self.split_budget) in [unicode, tuple])
 		self.assertEqual(self.split_budget, ('$', '19', 'million'))
 
-	def test_convert_budget_to_float(self):
+	def test_convert_split_budget_to_float(self):
 		"""Tests that the convert_budget_to_float method returns either a float 
 		   or u'N/A'."""
 

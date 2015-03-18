@@ -55,7 +55,7 @@ class MovieData(PageData):
 
 		self.budget_string = self.get_movie_budget()
 		self.split_budget = self.split_budget_text()
-		self.budget_float = self.convert_budget_to_float()
+		self.budget_float = self.convert_split_budget_to_float()
 
 	def get_movie_budget(self):
 		"""Given the MovieData object of a movie, returns the budget of the movie
@@ -121,7 +121,7 @@ class MovieData(PageData):
 
 		return split_budget
 
-	def convert_budget_to_float(self):
+	def convert_split_budget_to_float(self):
 		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
 		   units), returns either 'N/A' or the budget in ones."""
 
@@ -171,7 +171,8 @@ class BestPicturePageData(PageData):
 	"""Stores attributes and methods of getting data from the Best Picture Oscar Wiki page."""
 
 	def __init__(self):
-		"""Initializes with the BeautifulSoup object of the Wiki page."""
+		"""Initializes with the BeautifulSoup object of the Wiki page and a generator of 
+		   all of the urls, titles, and years of the BP winners."""
 
 		self.page_data = PageData('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 		self.text_soup = self.page_data.text_soup
@@ -184,8 +185,8 @@ class BestPicturePageData(PageData):
 		url = li.a['href']
 		title = li.a.string
 
-		# Assumes that the year will always be found in parentheses
-		# following a </i> tag and prior to a </li> tag.
+		# Assumes that the year will always follow this pattern:
+		# </i>(year)</li>
 		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
 		year = re.search(year_pattern, unicode(li)).group(1)
 
@@ -199,10 +200,11 @@ class BestPicturePageData(PageData):
 
 		# By using negative indexing, assumes that it is more likely that other 
 		# tables will be added before this table, rather than after it. 
+		# Unfortunately there's no more unique identifier for this table.
 		possible_winners = tables[-2]('li')
 
-		# Assumes that the movie names will always have the year in parentheses
-		# following them and uses this pattern to match the list item for each movie.
+		# Assumes that the movie titles will always follow this pattern:
+		# movie title (year/optional second year)
 		winner_pattern = re.compile(r'.+\(.+\)')
 		winners = (li for li in possible_winners 
 					if re.match(winner_pattern, unicode(li)))
@@ -223,7 +225,10 @@ class BestPicturePageData(PageData):
 		for movie in self.movie_list_generator:
 			movie_obj = MovieData(movie.url, movie.title, movie.year)
 			movie_named_tuple = movie_obj.build_movie_named_tuple()
-			print u'{title}, {year}, {budget_string}'.format(
+
+			# Print here to get better responsiveness. Otherwise would have to wait for the
+			# entire table to be built (~30s).
+			print u'{title: <50} {year: <10} {budget_string: <15}'.format(
 				title=movie_named_tuple.title, year=movie_named_tuple.year, budget_string=movie_named_tuple.budget_string)
 
 			movies.append(movie_named_tuple)
@@ -235,7 +240,7 @@ class BestPicturePageData(PageData):
 		return movies
 
 	def get_average_budget(self, bp_movie_data):
-		"""After retrieving all of the movie data w/ budgets, returns the average
+		"""Given the movie data as an array of named tuples, returns the average
 		   budget in USD of movies that provide a budget."""
 
 		movie_budgets = [movie.budget_float for movie in bp_movie_data if movie.budget_float != u'N/A']
@@ -245,6 +250,8 @@ class BestPicturePageData(PageData):
 
 if __name__ == '__main__':
 	bp_data_obj = BestPicturePageData()
+
+	# Running this method will print out all the titles, years, budgets as it's building the array.
 	bp_movie_data = bp_data_obj.get_bp_movie_data()
 	print '------------------'
 	print 'Average budget: {:0,.2f}'.format(bp_data_obj.get_average_budget(bp_movie_data))
