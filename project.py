@@ -156,10 +156,12 @@ class BestPicturePageData(PageData):
 		"""Initializes with the BeautifulSoup object of the Wiki page."""
 
 		self.page_data = PageData('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
-		self.text_soup = self.page_data.get_soup_from_text()
+		self.text_soup = self.page_data.text_soup
+		self.bp_movie_data = self.get_bp_movie_data()
+		self.average_budget = self.get_average_budget()
 
 	def convert_li_to_movie_data(self, li):
-		"""Given a BeautifulSoup li object of a prespecified pattern, returns a tuple
+		"""Given a BeautifulSoup list item object of a prespecified pattern, returns a tuple
 		   of movie_url, movie_title, and movie_year."""
 
 		movie_url = li.a['href']
@@ -173,8 +175,8 @@ class BestPicturePageData(PageData):
 		return movie_url, movie_title, movie_year
 
 	def get_bp_movie_data(self):
-		"""Given the data for the Best Picture Wiki page, builds an array of arrays of the
-		   movie urls, titles, years, and budgets."""
+		"""Given the data for the Best Picture Wiki page, builds an array of 
+		   named tuples of the movie urls, titles, years, and budgets."""
 
 		tables = self.text_soup('table')
 
@@ -209,7 +211,6 @@ class BestPicturePageData(PageData):
 		"""After retrieving all of the movie data w/ budgets, returns the average
 		   budget of movies that provide a budget."""
 
-		self.bp_movie_data = self.get_bp_movie_data()
 		movie_budgets = [movie.budget_int for movie in self.bp_movie_data if movie.budget_int != u'N/A']
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
