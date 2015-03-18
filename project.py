@@ -41,21 +41,21 @@ class PageData(object):
 class MovieData(PageData):
 	"""Stores attributes and methods of getting data from a movie's Wiki page."""
 
-	def __init__(self, movie_url, movie_title, movie_year):
+	def __init__(self, url, title, year):
 		"""Initializes with the attributes retrieved from the Best Picture page,
 		   the BeautifulSoup object of the movie's Wiki page, and the data retrieved
 		   from the movie's own page."""
 
-		self.movie_url = movie_url
-		self.movie_title = movie_title
-		self.movie_year = movie_year
+		self.url = url
+		self.title = title
+		self.year = year
 
-		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
+		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.url))
 		self.text_soup = self.page_data.text_soup
 
 		self.budget_string = self.get_movie_budget()
 		self.split_budget = self.split_budget_text()
-		self.budget_int = self.convert_budget_to_int()
+		self.budget_float = self.convert_budget_to_float()
 
 	def get_movie_budget(self):
 		"""Given the MovieData object of a movie, returns the budget of the movie
@@ -65,14 +65,8 @@ class MovieData(PageData):
 		# enclosed in HTML tags.
 		budget_pattern = re.compile(r'>Budget<')
 
-		# Edge case: movie info table not always the first table.
-		# num_tables = len(self.text_soup('table'))
-		# for i in xrange(num_tables):
-		# 	if [tr for tr in self.text_soup('table')[i]('tr') if re.search(budget_pattern, unicode(tr))]:
+		# Assumes that the movie info table will always be HTML class 'infobox'.
 		movie_info_table_rows = self.text_soup.find('table', class_='infobox')('tr')
-			# else:
-			# 	budget = u'N/A'
-
 		budget_table_rows = [tr for tr in movie_info_table_rows
 							if re.search(budget_pattern, unicode(tr))]
 		
@@ -81,15 +75,18 @@ class MovieData(PageData):
 
 			# Assumes that the budget text will only come in this format:
 			# budgetstring[footnote num]
-			# Gets rid of that footnote if there is one.
+			# Deletes that footnote if there is one.
 			budget = re.sub(r'\[\d+\]{1,}', '', budget_text)
+
+			# Deletes any spacing, unicode or otherwise.
 			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
 		elif len(budget_table_rows) == 0:
 			budget = u'N/A'
 		else:
+
 			# No current cases of multiple budgets, but throw an error 
 			# should it happen in the future.
-			raise ValueError('More than one budget found on {0}.'.format(self.movie_url))
+			raise ValueError('More than one budget found on {0}.'.format(self.url))
 
 		return budget
 
@@ -124,7 +121,7 @@ class MovieData(PageData):
 
 		return split_budget
 
-	def convert_budget_to_int(self):
+	def convert_budget_to_float(self):
 		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
 		   units), returns either 'N/A' or the budget in ones."""
 
@@ -138,35 +135,35 @@ class MovieData(PageData):
 				first, second = digits.split(u'–')
 				digits = (float(first) + float(second))/2
 
-			# Converts GBP to USD.
+			# Converts GBP to USD if only GBP is given.
 			if currency == u'£':
-				digits = float(digits) * GDP_TO_USD_DICT[self.movie_year]
+				digits = float(digits) * GDP_TO_USD_DICT[self.year]
 
 			# Assumes that the only possible units are millions, and if so, the 
 			# string always contains the substring 'million.' This is a fair
-			# assumption for now b/c we have the full dataset and that holds.
+			# assumption for now as it applies to the full dataset as of now.
 			if 'million' in units:
 
 				# Float to correctly convert strings like '1.25'.
 				converted_budget = float(digits) * 1000000
 			else:
 
-				# Float to correctly convert strings like '$2,840,000.'
+				# Float to correctly convert strings like '2,840,000.'
 				# (trailing period).
 				converted_budget = float(digits)
 
-		# Throw error if the output doesn't make logical sense.
+		# Raise ValueError if the output doesn't make logical sense.
 		# Assumes a movie budget will be at least $10,000.
 		if isinstance(converted_budget, float) and converted_budget < 10000:
-			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
+			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.url, converted_budget))
 
 		return converted_budget
 
 	def build_movie_named_tuple(self):
 		"""For a given MovieData object, returns a named tuple of all found data."""
 
-		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_int')
-		movie_data_tuple = movie_data(self.movie_url, self.movie_title, self.movie_year, self.budget_string, self.budget_int)
+		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_float')
+		movie_data_tuple = movie_data(self.url, self.title, self.year, self.budget_string, self.budget_float)
 
 		return movie_data_tuple
 
@@ -182,17 +179,17 @@ class BestPicturePageData(PageData):
 
 	def convert_li_to_movie_data(self, li):
 		"""Given a BeautifulSoup list item object of a prespecified pattern, returns a tuple
-		   of movie_url, movie_title, and movie_year."""
+		   of url, title, and year."""
 
-		movie_url = li.a['href']
-		movie_title = li.a.string
+		url = li.a['href']
+		title = li.a.string
 
 		# Assumes that the year will always be found in parentheses
 		# following a </i> tag and prior to a </li> tag.
 		year_pattern = re.compile(r'</i>\s+\((.+)\)</li>')
-		movie_year = re.search(year_pattern, unicode(li)).group(1)
+		year = re.search(year_pattern, unicode(li)).group(1)
 
-		return movie_url, movie_title, movie_year
+		return url, title, year
 
 	def get_bp_movie_list_generator(self):
 		"""Given the data for the Best Picture Wiki page, returns a generator of 
@@ -214,19 +211,21 @@ class BestPicturePageData(PageData):
 		# with the url, title, and year found in the same place.
 		movie_data = namedtuple('MovieData', 'url, title, year')
 		for list_item in winners:
-			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(list_item)
-			yield movie_data(movie_url, movie_title, movie_year)
+			url, title, year = self.convert_li_to_movie_data(list_item)
+			yield movie_data(url, title, year)
 
 	def get_bp_movie_data(self):
 		"""Using the movie_list_generator, builds an array of named tuples with the
-		   url, title, year, budget_string, and budget_int of the movies."""
+		   url, title, year, budget_string, and budget_float of the movies."""
 		
 		movies = []
 		
 		for movie in self.movie_list_generator:
 			movie_obj = MovieData(movie.url, movie.title, movie.year)
 			movie_named_tuple = movie_obj.build_movie_named_tuple()
-			print movie_named_tuple
+			print u'{title}, {year}, {budget_string}'.format(
+				title=movie_named_tuple.title, year=movie_named_tuple.year, budget_string=movie_named_tuple.budget_string)
+
 			movies.append(movie_named_tuple)
 
 		# This will change once a year. Included it here instead of in testing because this particular
@@ -239,7 +238,13 @@ class BestPicturePageData(PageData):
 		"""After retrieving all of the movie data w/ budgets, returns the average
 		   budget in USD of movies that provide a budget."""
 
-		movie_budgets = [movie.budget_int for movie in bp_movie_data if movie.budget_int != u'N/A']
+		movie_budgets = [movie.budget_float for movie in bp_movie_data if movie.budget_float != u'N/A']
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
-		return '{:0,.2f}'.format(average_budget)
+		return average_budget
+
+if __name__ == '__main__':
+	bp_data_obj = BestPicturePageData()
+	bp_movie_data = bp_data_obj.get_bp_movie_data()
+	print '------------------'
+	print 'Average budget: {:0,.2f}'.format(bp_data_obj.get_average_budget(bp_movie_data))

@@ -31,7 +31,7 @@ class TestMovieData(unittest.TestCase):
 			u'/wiki/The_Silence_of_the_Lambs_%28film%29', u'The Silence of the Lambs', u'1991')
 		self.budget_string = self.movie_data_obj.budget_string
 		self.split_budget = self.movie_data_obj.split_budget
-		self.budget_int = self.movie_data_obj.budget_int
+		self.budget_float = self.movie_data_obj.budget_float
 
 	def test_get_movie_budget(self):
 		"""Tests that the get_movie_budget method returns a unicode repr of 
@@ -48,12 +48,12 @@ class TestMovieData(unittest.TestCase):
 		self.assertTrue(type(self.split_budget) in [unicode, tuple])
 		self.assertEqual(self.split_budget, ('$', '19', 'million'))
 
-	def test_convert_budget_to_int(self):
-		"""Tests that the convert_budget_to_int method returns either a float 
+	def test_convert_budget_to_float(self):
+		"""Tests that the convert_budget_to_float method returns either a float 
 		   or u'N/A'."""
 
-		self.assertTrue(type(self.budget_int) in [unicode, float])
-		self.assertEqual(self.budget_int, (19000000.0))
+		self.assertTrue(type(self.budget_float) in [unicode, float])
+		self.assertEqual(self.budget_float, (19000000.0))
 
 class TestBestPictureData(unittest.TestCase):
 	"""Tests the BestPictureData class."""
@@ -95,7 +95,7 @@ class TestBestPictureData(unittest.TestCase):
 		"""Tests that the get_average_budget method works as expected, and ignores
 		   any unavailable budgets. Uses mock named tuples."""
 
-		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_int')
+		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_float')
 		
 		silence = movie_data(
 			u'/wiki/The_Silence_of_the_Lambs_%28film%29', u'The Silence of the Lambs', u'1991', u'$19 million', 19000000.0)
@@ -108,7 +108,7 @@ class TestBestPictureData(unittest.TestCase):
 
 		bp_movie_data = [silence, apartment, melody]
 
-		self.assertEqual(self.bp_data_obj.get_average_budget(bp_movie_data), '11,000,000.00')
+		self.assertEqual(self.bp_data_obj.get_average_budget(bp_movie_data), 11000000.0)
 
 if __name__ == '__main__':
 	unittest.main()
