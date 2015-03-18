@@ -66,5 +66,26 @@ class TestBestPictureData(unittest.TestCase):
 		self.assertEqual(self.bp_data_obj.convert_li_to_movie_data(self.mock_li), 
 			(u'/wiki/Wings_(1927_film)', u'Wings', u'1927/28'))
 
+	def test_get_bp_movie_list_generator(self):
+		"""Tests that the get_bp_movie_list_generator returns a generator of named
+		   tuples for all Best Picture winners."""
+
+		self.assertTrue(self.bp_data_obj.get_bp_movie_list_generator())
+
+	def test_bp_movie_generator_data(self):
+		"""Tests that the first named tuple returned by the generator is exactly as expected.
+		   This data should never change; if it did, it would signal a problem."""
+
+		first_item = self.bp_data_obj.get_bp_movie_list_generator().next()
+		self.assertEqual(first_item.url, u'/wiki/Wings_(1927_film)')
+		self.assertEqual(first_item.title, u'Wings')
+		self.assertEqual(first_item.year, u'1927/28')
+
+	def test_bp_movie_list_length(self):
+		"""Tests that there are the correct number of movies provided in the generator.
+		   This is a fragile test, but only has to change once a year."""
+
+		self.assertEqual(len(list(self.bp_data_obj.get_bp_movie_list_generator())), 87)
+
 if __name__ == '__main__':
 	unittest.main()

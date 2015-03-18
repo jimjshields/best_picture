@@ -224,12 +224,20 @@ class BestPicturePageData(PageData):
 			movie_obj = MovieData(movie.url, movie.title, movie.year)
 			movies.append(movie_obj.build_movie_named_tuple())
 
+		# This will change once a year. Included it here instead of in testing because this particular
+		# array takes too long to build (~30s).
+		assert len(movies) == 87
+
+		return movies
+
 	def get_average_budget(self):
 		"""After retrieving all of the movie data w/ budgets, returns the average
-		   budget of movies that provide a budget."""
+		   budget in USD of movies that provide a budget."""
 
 		self.bp_movie_data = self.get_bp_movie_data()
 		movie_budgets = [movie.budget_int for movie in self.bp_movie_data if movie.budget_int != u'N/A']
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
 		return '{:0,.2f}'.format(average_budget)
+
+print [movie.url for movie in BestPicturePageData().get_bp_movie_data() if movie.budget_string == u'N/A']
