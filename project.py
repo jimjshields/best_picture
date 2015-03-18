@@ -78,7 +78,7 @@ class MovieData(PageData):
 			# Assumes that the budget text will only come in this format:
 			# budgetstring[footnote num]
 			# Gets rid of that footnote if there is one.
-			budget = re.sub(r'\[\d+\]', '', budget_text)
+			budget = re.sub(r'\[\d+\]*', '', budget_text)
 			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
 		elif len(budget_table_rows) == 0:
 			budget = u'N/A'
@@ -99,8 +99,17 @@ class MovieData(PageData):
 
 			# Assumes that the budget will always be formatted as: 
 			# [curr symbol] [ints w/ commas/periods/unicode dashes] [units]
-			budget_pattern = ur'(\D*)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
-			budget_groups = re.match(budget_pattern, self.budget_string)
+			# Also assumes that there are only two currencies - USD and GBP.
+			# Defaults to USD if given (e.g., The King's Speech), otherwise
+			# grabs GBP.
+			usd_budget_pattern = ur'(.*\$)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
+			gbp_budget_pattern = ur'(.*\£)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
+
+			if re.match(usd_budget_pattern, self.budget_string):
+				budget_groups = re.match(usd_budget_pattern, self.budget_string)
+			elif re.match(gbp_budget_pattern, self.budget_string):
+				budget_groups = re.match(gbp_budget_pattern, self.budget_string)
+
 			if budget_groups:
 				currency = budget_groups.group(1).strip()
 
@@ -149,6 +158,15 @@ class MovieData(PageData):
 
 		return converted_budget
 
+	def build_movie_named_tuple(self):
+		"""For a given MovieData object, returns a named tuple of all found data."""
+
+		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_int')
+		movie_data_tuple = movie_data(self.movie_url, self.movie_title, self.movie_year, self.budget_string, self.budget_int)
+
+		return movie_data_tuple
+
+
 class BestPicturePageData(PageData):
 	"""Stores attributes and methods of getting data from the Best Picture Oscar Wiki page."""
 
@@ -157,8 +175,7 @@ class BestPicturePageData(PageData):
 
 		self.page_data = PageData('http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
 		self.text_soup = self.page_data.text_soup
-		self.bp_movie_data = self.get_bp_movie_data()
-		self.average_budget = self.get_average_budget()
+		self.movie_list_generator = self.get_bp_movie_list_generator()
 
 	def convert_li_to_movie_data(self, li):
 		"""Given a BeautifulSoup list item object of a prespecified pattern, returns a tuple
@@ -174,9 +191,9 @@ class BestPicturePageData(PageData):
 
 		return movie_url, movie_title, movie_year
 
-	def get_bp_movie_data(self):
-		"""Given the data for the Best Picture Wiki page, builds an array of 
-		   named tuples of the movie urls, titles, years, and budgets."""
+	def get_bp_movie_list_generator(self):
+		"""Given the data for the Best Picture Wiki page, returns a generator of 
+		   named tuples of the movie urls, titles, and years."""
 
 		tables = self.text_soup('table')
 
@@ -190,27 +207,28 @@ class BestPicturePageData(PageData):
 		winners = (li for li in possible_winners 
 					if re.match(winner_pattern, unicode(li)))
 
-		movies = []
-		movie_data = namedtuple('MovieData', 'url, title, year, budget_str, budget_int')
-
 		# Assumes that movies will continue to be structured as list items,
 		# with the url, title, and year found in the same place.
+		movie_data = namedtuple('MovieData', 'url, title, year')
 		for list_item in winners:
 			movie_url, movie_title, movie_year = self.convert_li_to_movie_data(list_item)
-			
-			movie_obj = MovieData(movie_url, movie_title, movie_year)
-			movie_budget_str = movie_obj.budget_str
-			movie_budget_int = movie_obj.budget_int
-			
-			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_str, movie_budget_int)
-			movies.append(movie_data_tuple)
+			yield movie_data(movie_url, movie_title, movie_year)
 
-		return movies
+	def get_bp_movie_data(self):
+		"""Using the movie_list_generator, builds an array of named tuples with the
+		   url, title, year, budget_string, and budget_int of the movies."""
+		
+		movies = []
+		
+		for movie in self.movie_list_generator:
+			movie_obj = MovieData(movie.url, movie.title, movie.year)
+			movies.append(movie_obj.build_movie_named_tuple())
 
 	def get_average_budget(self):
 		"""After retrieving all of the movie data w/ budgets, returns the average
 		   budget of movies that provide a budget."""
 
+		self.bp_movie_data = self.get_bp_movie_data()
 		movie_budgets = [movie.budget_int for movie in self.bp_movie_data if movie.budget_int != u'N/A']
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
