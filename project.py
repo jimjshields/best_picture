@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-"""Overall goal:  scrape the budgets of the Academy Award 
-   Best Picture winners from Wikipedia."""
 
 from __future__ import division
 import requests, re
@@ -9,14 +7,14 @@ from collections import namedtuple
 
 # Because there are only 3 budgets denoted in pounds, I'm hardcoding a dict of just those year's exchange rates.
 # Should there be a new one, a KeyError would be thrown.
-GDP_TO_USD_DICT = {u'1948': 2.785456, u'1981': 2.026220, u'2010': 1.545204}
+# Source: http://www.measuringworth.com/datasets/exchangepound/result.php
+GDP_TO_USD_DICT = {u'1948': 4.03, u'1981': 2.02, u'2010': 1.55}
 
 class PageData(object):
 	"""Stores attributes and methods of getting data from a webpage."""
 
 	def __init__(self, url):
-		"""Initializes with the text found at the url, and the BeautifulSoup object
-		   of the text."""
+		"""Initializes with the text found at the url."""
 
 		self.url = url
 		self.text = self.get_url_text()
@@ -42,13 +40,16 @@ class MovieData(PageData):
 	"""Stores attributes and methods of getting data from a movie's Wiki page."""
 
 	def __init__(self, movie_url, movie_title, movie_year):
-		"""Initializes with the BeautifulSoup object of the movie's Wiki page."""
+		"""Initializes with the BeautifulSoup object of the movie's Wiki page, and the data retrieved
+		   from the Best Picture page and the movie's own page."""
 
 		self.movie_url = movie_url
 		self.movie_title = movie_title
 		self.movie_year = movie_year
+
 		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
 		self.text_soup = self.page_data.get_soup_from_text()
+
 		self.budget_str = self.get_movie_budget()
 		self.split_budget = self.split_budget_text(self.budget_str)
 		self.budget_int = self.convert_budget_to_int(self.split_budget)
@@ -69,29 +70,27 @@ class MovieData(PageData):
 							if re.search(budget_pattern, unicode(tr))]
 		
 		if len(budget_table_rows) == 1:
-
-			# Assumes that there is only ever one budget.
-			# Also assumes that the budget text will only come in this format:
-			# budgetstring[footnote num]
-			# And gets rid of that footnote if there is one.
 			budget_text = budget_table_rows[0].td.get_text()
+
+			# Assumes that the budget text will only come in this format:
+			# budgetstring[footnote num]
+			# Gets rid of that footnote if there is one.
 			budget = re.sub(r'\[\d+\]', '', budget_text)
 			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
-
-		elif len(budget_table_rows) == 0: 
+		elif len(budget_table_rows) == 0:
 			budget = u'N/A'
 		else:
+			# No current cases of multiple budgets, but throw an error 
+			# should it happen in the future.
 			raise ValueError('More than one budget found on {0}.'.format(self.movie_url))
 
 		return budget
 
-	# 4. print out each Year-Title-Budget combination
-
 	def split_budget_text(self, budget_string):
 		"""Given a string representing a movie's budget, returns a tuple of
-		   currency, digits, and units."""
+		   currency, digits, and units, or 'N/A'."""
 
-		if budget_string == 'N/A':
+		if budget_string == u'N/A':
 			split_budget = budget_string
 		else:
 
@@ -105,7 +104,6 @@ class MovieData(PageData):
 				# Assumes that decimal points are important, but commas are not.
 				digits = budget_groups.group(2).replace(',', '').strip()
 				units = budget_groups.group(3).strip()
-
 				split_budget = (currency, digits, units)
 
 		return split_budget
@@ -118,19 +116,22 @@ class MovieData(PageData):
 			converted_budget = split_budget
 		else:
 			currency, digits, units = split_budget
+				
+			# Takes the average of digits formatted like: '6–7'.
+			if u'–' in digits:
+				first, second = digits.split(u'–')
+				digits = (float(first) + float(second))/2
+
+			# Converts GBP to USD.
+			if currency == u'£':
+				digits = float(digits) * GDP_TO_USD_DICT[self.movie_year]
 
 			# Assumes that the only possible units are millions, and if so, the 
 			# string always contains the substring 'million.' This is a fair
 			# assumption for now b/c we have the full dataset and that holds.
-				
-			if u'–' in digits:
-				first, second = digits.split(u'–')
-				digits = (float(first) + float(second))/2
-			if currency == u'£':
-				digits = float(digits) * GDP_TO_USD_DICT[self.movie_year]
 			if 'million' in units:
 
-				# Float to correctly convert strings like '1.25 million'.
+				# Float to correctly convert strings like '1.25'.
 				converted_budget = float(digits) * 1000000
 			else:
 
@@ -138,7 +139,8 @@ class MovieData(PageData):
 				# (trailing period).
 				converted_budget = float(digits)
 
-		# Check to make sure the output makes sense — assuming a movie bucget will be at least $10,000.
+		# Throw error if the output doesn't make logical sense.
+		# Assumes a movie budget will be at least $10,000.
 		if isinstance(converted_budget, float) and converted_budget < 10000:
 			raise ValueError('The budget calculated for {0} is {1}; it\'s too small.'.format(self.movie_url, converted_budget))
 
@@ -198,8 +200,6 @@ class BestPicturePageData(PageData):
 			movie_data_tuple = movie_data(movie_url, movie_title, movie_year, movie_budget_str, movie_budget_int)
 			movies.append(movie_data_tuple)
 
-			print movie_data_tuple
-
 		return movies
 
 	def get_average_budget(self):
@@ -211,14 +211,3 @@ class BestPicturePageData(PageData):
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
 		return '{:0,.2f}'.format(average_budget)
-
-print BestPicturePageData().get_average_budget()
-
-"""If you encounter any edge cases, feel free to use your best judgement 
-and add a comment with your conclusion. This code should be written to 
-production standards.
-
-You can use any language you want, but there is a strong preference for a 
-language where we will be able to reproduce your results (any modern, 
-semi-popular language will be fine). Please add instructions about any 
-additional libraries that may be necessary along with versions."""

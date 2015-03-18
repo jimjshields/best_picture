@@ -53,5 +53,20 @@ class TestMovieData(unittest.TestCase):
 
 		self.assertTrue(type(self.movie_budget_int) in [unicode, float])
 
+class TestBestPictureData(unittest.TestCase):
+	"""Tests the BestPictureData class."""
+
+	def setUp(self):
+		self.bp_data_obj = project.BestPicturePageData()
+		self.mock_li = BeautifulSoup(
+			'<li><i><a href="/wiki/Wings_(1927_film)" title="Wings (1927 film)">Wings</a></i> (1927/28)</li>')
+
+	def test_convert_li_to_movie_data(self):
+		"""Tests that the convert_li_to_movie_data converts a BeautifulSoup
+		   li object for a movie to a tuple of appropriate data."""
+
+		self.assertEqual(self.bp_data_obj.convert_li_to_movie_data(self.mock_li), 
+			(u'/wiki/Wings_(1927_film)', u'Wings', u'1927/28'))
+
 if __name__ == '__main__':
 	unittest.main()
