@@ -53,12 +53,12 @@ class MovieData(PageData):
 		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
 		self.text_soup = self.page_data.text_soup
 
-		self.budget_str = self.get_movie_budget()
-		self.split_budget = self.split_budget_text(self.budget_str)
-		self.budget_int = self.convert_budget_to_int(self.split_budget)
+		self.budget_string = self.get_movie_budget()
+		self.split_budget = self.split_budget_text()
+		self.budget_int = self.convert_budget_to_int()
 
 	def get_movie_budget(self):
-		"""Given the url for a particular movie, returns the budget of the movie
+		"""Given the MovieData object of a movie, returns the budget of the movie
 		   as a string, or as 'N/A' if not found."""
 		
 		# Assumes that the movie info will always be found in the first table.
@@ -89,18 +89,18 @@ class MovieData(PageData):
 
 		return budget
 
-	def split_budget_text(self, budget_string):
+	def split_budget_text(self):
 		"""Given a string representing a movie's budget, returns a tuple of
 		   currency, digits, and units, or 'N/A'."""
 
-		if budget_string == u'N/A':
-			split_budget = budget_string
+		if self.budget_string == u'N/A':
+			split_budget = self.budget_string
 		else:
 
 			# Assumes that the budget will always be formatted as: 
 			# [curr symbol] [ints w/ commas/periods/unicode dashes] [units]
 			budget_pattern = ur'(\D*)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
-			budget_groups = re.match(budget_pattern, budget_string)
+			budget_groups = re.match(budget_pattern, self.budget_string)
 			if budget_groups:
 				currency = budget_groups.group(1).strip()
 
@@ -111,14 +111,14 @@ class MovieData(PageData):
 
 		return split_budget
 
-	def convert_budget_to_int(self, split_budget):
+	def convert_budget_to_int(self):
 		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
 		   units), returns either 'N/A' or the budget in ones."""
 
-		if split_budget == u'N/A':
-			converted_budget = split_budget
+		if self.split_budget == u'N/A':
+			converted_budget = self.split_budget
 		else:
-			currency, digits, units = split_budget
+			currency, digits, units = self.split_budget
 				
 			# Takes the average of digits formatted like: '6–7'.
 			if u'–' in digits:

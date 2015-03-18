@@ -28,18 +28,16 @@ class TestMovieData(unittest.TestCase):
 	def setUp(self):
 		self.movie_data_obj = project.MovieData(
 			u'/wiki/The_Silence_of_the_Lambs_%28film%29', u'The Silence of the Lambs', u'1991')
-		self.movie_budget_str = self.movie_data_obj.get_movie_budget()
-		self.split_budget = self.movie_data_obj.split_budget_text(
-			self.movie_budget_str)
-		self.movie_budget_int = self.movie_data_obj.convert_budget_to_int(
-			self.split_budget)
+		self.budget_string = self.movie_data_obj.budget_string
+		self.split_budget = self.movie_data_obj.split_budget
+		self.budget_int = self.movie_data_obj.budget_int
 
 	def test_get_movie_budget(self):
 		"""Tests that the get_movie_budget method returns a unicode repr of 
 		   the budget, or 'N/A'."""
 
 		self.assertTrue(isinstance(
-			self.movie_budget_str, unicode))
+			self.budget_string, unicode))
 
 	def test_split_budget_text(self):
 		"""Tests that the split_budget_text method returns either a tuple or 
@@ -51,7 +49,7 @@ class TestMovieData(unittest.TestCase):
 		"""Tests that the convert_budget_to_int method returns either a float 
 		   or u'N/A'."""
 
-		self.assertTrue(type(self.movie_budget_int) in [unicode, float])
+		self.assertTrue(type(self.budget_int) in [unicode, float])
 
 class TestBestPictureData(unittest.TestCase):
 	"""Tests the BestPictureData class."""
