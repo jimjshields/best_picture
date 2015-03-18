@@ -8,8 +8,8 @@ class TestPageData(unittest.TestCase):
 	def setUp(self):
 		self.page_data_obj = project.PageData(
 			'http://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture')
-		self.url_text = self.page_data_obj.get_url_text()
-		self.text_soup = self.page_data_obj.get_soup_from_text()
+		self.url_text = self.page_data_obj.text
+		self.text_soup = self.page_data_obj.text_soup
 
 	def test_get_url_text(self):
 		"""Tests that the get_url_text method gets unicode back."""

@@ -14,10 +14,12 @@ class PageData(object):
 	"""Stores attributes and methods of getting data from a webpage."""
 
 	def __init__(self, url):
-		"""Initializes with the text found at the url."""
+		"""Initializes with the text found at the url and the BeautifulSoup object
+		   of that text."""
 
 		self.url = url
 		self.text = self.get_url_text()
+		self.text_soup = self.get_soup_from_text()
 	
 	def get_url_text(self):
 		"""Given a url, return the text found at that url. Assumes the encoding
@@ -40,15 +42,16 @@ class MovieData(PageData):
 	"""Stores attributes and methods of getting data from a movie's Wiki page."""
 
 	def __init__(self, movie_url, movie_title, movie_year):
-		"""Initializes with the BeautifulSoup object of the movie's Wiki page, and the data retrieved
-		   from the Best Picture page and the movie's own page."""
+		"""Initializes with the attributes retrieved from the Best Picture page,
+		   the BeautifulSoup object of the movie's Wiki page, and the data retrieved
+		   from the movie's own page."""
 
 		self.movie_url = movie_url
 		self.movie_title = movie_title
 		self.movie_year = movie_year
 
 		self.page_data = PageData('http://en.wikipedia.org{0}'.format(self.movie_url))
-		self.text_soup = self.page_data.get_soup_from_text()
+		self.text_soup = self.page_data.text_soup
 
 		self.budget_str = self.get_movie_budget()
 		self.split_budget = self.split_budget_text(self.budget_str)
