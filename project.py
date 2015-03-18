@@ -43,8 +43,8 @@ class MovieData(PageData):
 
 	def __init__(self, url, title, year):
 		"""Initializes with the attributes retrieved from the Best Picture page,
-		   the BeautifulSoup object of the movie's Wiki page, and the data retrieved
-		   from the movie's own page."""
+		   the BeautifulSoup object of the movie's Wiki page, and the budget data 
+		   retrieved from the movie's own page."""
 
 		self.url = url
 		self.title = title
@@ -99,10 +99,10 @@ class MovieData(PageData):
 		else:
 
 			# Assumes that the budget will always be formatted as: 
-			# [curr symbol] [ints w/ commas/periods/unicode dashes] [units]
+			# 'curr symbol' 'ints w/ commas/periods/unicode dashes' 'units'
 			# Also assumes that there are only two currencies - USD and GBP.
 			# Defaults to USD if given (e.g., The King's Speech), otherwise
-			# grabs GBP.
+			# gets GBP.
 			usd_budget_pattern = ur'(.*\$)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
 			gbp_budget_pattern = ur'(.*\£)\s?([\d, \,, \., \u2013]*)\s?(\D*)'
 
@@ -122,8 +122,8 @@ class MovieData(PageData):
 		return split_budget
 
 	def convert_split_budget_to_float(self):
-		"""Given the budget as either a str 'N/A' or a tuple of (currency, digits,
-		   units), returns either 'N/A' or the budget in ones."""
+		"""Given the budget as either u'N/A' or a tuple of (currency, digits,
+		   units), returns either u'N/A' or the budget in ones."""
 
 		if self.split_budget == u'N/A':
 			converted_budget = self.split_budget
@@ -149,7 +149,7 @@ class MovieData(PageData):
 			else:
 
 				# Float to correctly convert strings like '2,840,000.'
-				# (trailing period).
+				# (trailing periods).
 				converted_budget = float(digits)
 
 		# Raise ValueError if the output doesn't make logical sense.
@@ -204,7 +204,7 @@ class BestPicturePageData(PageData):
 		possible_winners = tables[-2]('li')
 
 		# Assumes that the movie titles will always follow this pattern:
-		# movie title (year/optional second year)
+		# 'movie title' (year/optional second year)
 		winner_pattern = re.compile(r'.+\(.+\)')
 		winners = (li for li in possible_winners 
 					if re.match(winner_pattern, unicode(li)))
@@ -228,8 +228,8 @@ class BestPicturePageData(PageData):
 
 			# Print here to get better responsiveness. Otherwise would have to wait for the
 			# entire table to be built (~30s).
-			print u'{title: <50} {year: <10} {budget_string: <15}'.format(
-				title=movie_named_tuple.title, year=movie_named_tuple.year, budget_string=movie_named_tuple.budget_string)
+			print u'{year: <10} {title: <50} {budget_string: <15}'.format(
+				year=movie_named_tuple.year, title=movie_named_tuple.title, budget_string=movie_named_tuple.budget_string)
 
 			movies.append(movie_named_tuple)
 
@@ -251,7 +251,7 @@ class BestPicturePageData(PageData):
 if __name__ == '__main__':
 	bp_data_obj = BestPicturePageData()
 
-	# Running this method will print out all the titles, years, budgets as it's building the array.
+	# Running this method will print out all the years, titles, budgets as it's building the array.
 	bp_movie_data = bp_data_obj.get_bp_movie_data()
 	print '------------------'
 	print 'Average budget: {:0,.2f}'.format(bp_data_obj.get_average_budget(bp_movie_data))
