@@ -228,8 +228,9 @@ class BestPicturePageData(PageData):
 
 			# Print here to get better responsiveness. Otherwise would have to wait for the
 			# entire table to be built (~30s).
-			print u'{year: <10} {title: <50} {budget_string: <15}'.format(
+			print u'{year: <10}{title: <50}{budget_string: <25}'.format(
 				year=movie_named_tuple.year, title=movie_named_tuple.title, budget_string=movie_named_tuple.budget_string)
+			print '-' * 85
 
 			movies.append(movie_named_tuple)
 
@@ -250,8 +251,11 @@ class BestPicturePageData(PageData):
 
 if __name__ == '__main__':
 	bp_data_obj = BestPicturePageData()
+	print '{year: <10}{title: <50}{budget_string: <25}'.format(year='Year', title='Title', budget_string='Budget')
+	print '-' * 85
 
 	# Running this method will print out all the years, titles, budgets as it's building the array.
 	bp_movie_data = bp_data_obj.get_bp_movie_data()
-	print '------------------'
-	print 'Average budget: {:0,.2f}'.format(bp_data_obj.get_average_budget(bp_movie_data))
+	
+	print 'Average budget: ${:0,.2f}'.format(bp_data_obj.get_average_budget(bp_movie_data))
+	print '-' * 85
