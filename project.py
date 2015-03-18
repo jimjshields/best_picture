@@ -11,7 +11,7 @@ from collections import namedtuple
 GDP_TO_USD_DICT = {u'1948': 4.03, u'1981': 2.02, u'2010': 1.55}
 
 class PageData(object):
-	"""Stores attributes and methods of getting data from a webpage."""
+	"""Stores attributes and methods of getting data from any webpage."""
 
 	def __init__(self, url):
 		"""Initializes with the text found at the url and the BeautifulSoup object
@@ -61,14 +61,18 @@ class MovieData(PageData):
 		"""Given the MovieData object of a movie, returns the budget of the movie
 		   as a string, or as 'N/A' if not found."""
 		
-		# Assumes that the movie info will always be found in the first table.
-		# Given that it is the first table, I'm comfortable with the assumption
-		# that its position won't change.
-		movie_info_table_rows = self.text_soup('table')[0]('tr')
-
 		# Assumes that the budget figure will always be preceded by 'Budget,'
 		# enclosed in HTML tags.
 		budget_pattern = re.compile(r'>Budget<')
+
+		# Edge case: movie info table not always the first table.
+		# num_tables = len(self.text_soup('table'))
+		# for i in xrange(num_tables):
+		# 	if [tr for tr in self.text_soup('table')[i]('tr') if re.search(budget_pattern, unicode(tr))]:
+		movie_info_table_rows = self.text_soup.find('table', class_='infobox')('tr')
+			# else:
+			# 	budget = u'N/A'
+
 		budget_table_rows = [tr for tr in movie_info_table_rows
 							if re.search(budget_pattern, unicode(tr))]
 		
@@ -78,7 +82,7 @@ class MovieData(PageData):
 			# Assumes that the budget text will only come in this format:
 			# budgetstring[footnote num]
 			# Gets rid of that footnote if there is one.
-			budget = re.sub(r'\[\d+\]*', '', budget_text)
+			budget = re.sub(r'\[\d+\]{1,}', '', budget_text)
 			budget = re.sub(r'\s', ' ', budget, flags=re.UNICODE)
 		elif len(budget_table_rows) == 0:
 			budget = u'N/A'
@@ -166,7 +170,6 @@ class MovieData(PageData):
 
 		return movie_data_tuple
 
-
 class BestPicturePageData(PageData):
 	"""Stores attributes and methods of getting data from the Best Picture Oscar Wiki page."""
 
@@ -222,7 +225,9 @@ class BestPicturePageData(PageData):
 		
 		for movie in self.movie_list_generator:
 			movie_obj = MovieData(movie.url, movie.title, movie.year)
-			movies.append(movie_obj.build_movie_named_tuple())
+			movie_named_tuple = movie_obj.build_movie_named_tuple()
+			print movie_named_tuple
+			movies.append(movie_named_tuple)
 
 		# This will change once a year. Included it here instead of in testing because this particular
 		# array takes too long to build (~30s).
@@ -230,14 +235,11 @@ class BestPicturePageData(PageData):
 
 		return movies
 
-	def get_average_budget(self):
+	def get_average_budget(self, bp_movie_data):
 		"""After retrieving all of the movie data w/ budgets, returns the average
 		   budget in USD of movies that provide a budget."""
 
-		self.bp_movie_data = self.get_bp_movie_data()
-		movie_budgets = [movie.budget_int for movie in self.bp_movie_data if movie.budget_int != u'N/A']
+		movie_budgets = [movie.budget_int for movie in bp_movie_data if movie.budget_int != u'N/A']
 		average_budget = sum(movie_budgets) / len(movie_budgets)
 
 		return '{:0,.2f}'.format(average_budget)
-
-print [movie.url for movie in BestPicturePageData().get_bp_movie_data() if movie.budget_string == u'N/A']

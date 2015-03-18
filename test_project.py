@@ -1,6 +1,7 @@
 import project
 import unittest
 from bs4 import BeautifulSoup
+from collections import namedtuple
 
 class TestPageData(unittest.TestCase):
 	"""Tests the PageData class."""
@@ -38,18 +39,21 @@ class TestMovieData(unittest.TestCase):
 
 		self.assertTrue(isinstance(
 			self.budget_string, unicode))
+		self.assertEqual(self.budget_string, u'$19 million')
 
 	def test_split_budget_text(self):
 		"""Tests that the split_budget_text method returns either a tuple or 
 		   u'N/A'."""
 
 		self.assertTrue(type(self.split_budget) in [unicode, tuple])
+		self.assertEqual(self.split_budget, ('$', '19', 'million'))
 
 	def test_convert_budget_to_int(self):
 		"""Tests that the convert_budget_to_int method returns either a float 
 		   or u'N/A'."""
 
 		self.assertTrue(type(self.budget_int) in [unicode, float])
+		self.assertEqual(self.budget_int, (19000000.0))
 
 class TestBestPictureData(unittest.TestCase):
 	"""Tests the BestPictureData class."""
@@ -86,6 +90,25 @@ class TestBestPictureData(unittest.TestCase):
 		   This is a fragile test, but only has to change once a year."""
 
 		self.assertEqual(len(list(self.bp_data_obj.get_bp_movie_list_generator())), 87)
+
+	def test_get_average_budget(self):
+		"""Tests that the get_average_budget method works as expected, and ignores
+		   any unavailable budgets. Uses mock named tuples."""
+
+		movie_data = namedtuple('AllMovieData', 'url, title, year, budget_string, budget_int')
+		
+		silence = movie_data(
+			u'/wiki/The_Silence_of_the_Lambs_%28film%29', u'The Silence of the Lambs', u'1991', u'$19 million', 19000000.0)
+		apartment = movie_data(
+			u'/wiki/The_Apartment', u'The Apartment', u'1960', u'$3 million', 3000000.0)
+
+		# Movie without budget.
+		melody = movie_data(
+			u'/wiki/The_Broadway_Melody', u'The Broadway Melody', u'1928/29', u'N/A', u'N/A')
+
+		bp_movie_data = [silence, apartment, melody]
+
+		self.assertEqual(self.bp_data_obj.get_average_budget(bp_movie_data), '11,000,000.00')
 
 if __name__ == '__main__':
 	unittest.main()
